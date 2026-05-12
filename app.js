@@ -1,5 +1,5 @@
 // === Version ===
-const VERSION = 'v0.2.1';
+const VERSION = 'v0.2.2';
 
 // === Constants ===
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -17,16 +17,24 @@ function setConfig(key, val) { localStorage.setItem('bk_' + key, val); }
 function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
 function base64ToUtf8(b64) { return decodeURIComponent(escape(atob(b64.replace(/\n/g, '')))); }
 
+// On localhost, route through our proxy server (needed for HTTPS_PROXY)
+// On GitHub Pages, call api.github.com directly
+function apiBase() {
+  const h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return '/api/github';
+  return 'https://api.github.com';
+}
+
 async function githubGet(path) {
   const owner = getConfig('owner');
   const repo = getConfig('repo');
   const token = getConfig('token');
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const url = `${apiBase()}/repos/${owner}/${repo}/contents/${path}`;
   let res;
   try {
     res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   } catch (e) {
-    throw new Error(`网络错误: 无法连接 api.github.com (${e.message})`);
+    throw new Error(`网络错误: 无法连接 GitHub API (${e.message})`);
   }
   if (res.status === 404) return null;
   const data = await res.json();
@@ -38,7 +46,7 @@ async function githubPut(path, content, sha, msg) {
   const owner = getConfig('owner');
   const repo = getConfig('repo');
   const token = getConfig('token');
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const url = `${apiBase()}/repos/${owner}/${repo}/contents/${path}`;
   const body = { message: msg, content: utf8ToBase64(content) };
   if (sha) body.sha = sha;
   let res;
@@ -52,7 +60,7 @@ async function githubPut(path, content, sha, msg) {
       body: JSON.stringify(body),
     });
   } catch (e) {
-    throw new Error(`网络错误: 无法连接 api.github.com (${e.message})`);
+    throw new Error(`网络错误: 无法连接 GitHub API (${e.message})`);
   }
   const data = await res.json();
   if (!res.ok) throw new Error(`GitHub ${res.status}: ${data.message || 'unknown error'}`);
@@ -123,7 +131,7 @@ async function testConnection() {
   if (!token || !owner || !repo) return '请先填写 Token、Owner、Repo';
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}`,
+      `${apiBase()}/repos/${owner}/${repo}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (res.status === 401) return 'Token 无效或已过期';
