@@ -11,11 +11,11 @@
       }
     ],
     "memos": [
-      "今日内容 :correction"
+      "今日内容"
     ],
-    "prev_balance": 720,
-    "new_balance": 540,
-    "message": "雨菲记账：5/12 周二雨菲上课 180。720-180=540\n备忘：\n1 今日内容 :correction",
-    "timestamp": "2026-05-12T07:34:07.882Z"
+    "prev_balance": 540,
+    "new_balance": 360,
+    "message": "雨菲记账：5/12 周二雨菲上课 180。540-180=360\n备忘：\n1 今日内容",
+    "timestamp": "2026-05-12T07:40:42.715Z"
   }
 ]
