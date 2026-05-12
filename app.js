@@ -1,5 +1,5 @@
 // === Version ===
-const VERSION = 'v0.2.2';
+const VERSION = 'v0.3.0';
 
 // === Constants ===
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -91,6 +91,16 @@ function getCurrentBalance() {
   return balance;
 }
 
+// Balance as of just before a given date (excludes that date's entry)
+function getBalanceBefore(date) {
+  let balance = 0;
+  for (const entry of logData) {
+    if (entry.type === 'init') balance = entry.balance;
+    else if (entry.type === 'entry' && entry.date < date) balance = entry.new_balance;
+  }
+  return balance;
+}
+
 async function saveEntry(entry) {
   // Defensive: refresh sha if missing
   if (!logSha) await loadLog();
@@ -111,6 +121,8 @@ async function saveEntry(entry) {
 }
 
 async function initLog(startingBalance) {
+  // Ensure we have the current sha (file may already exist)
+  if (!logSha) await loadLog();
   const newLogData = [{ type: 'init', balance: startingBalance, timestamp: new Date().toISOString() }];
   const content = JSON.stringify(newLogData, null, 2);
   const result = await githubPut('data/log.json', content, logSha, `init: balance ${startingBalance}`);
@@ -165,6 +177,7 @@ function formatMessage(date, items, memos, prevBalance) {
   expr += `=${balance}`;
 
   let msg = `雨菲记账：${month}/${day} ${weekday}${itemTexts.join('，')}。${expr}`;
+  msg += `\n余额：${balance}`;
   if (memos.length > 0) {
     msg += '\n备忘：';
     memos.forEach((m, i) => { msg += `\n${i + 1} ${m}`; });
@@ -245,7 +258,7 @@ function getFormData() {
 
 function updatePreview() {
   const { date, items, memos } = getFormData();
-  const prevBalance = getCurrentBalance();
+  const prevBalance = date ? getBalanceBefore(date) : 0;
 
   // Update weekday
   if (date) {
@@ -262,7 +275,14 @@ function updatePreview() {
 }
 
 function updateBalanceDisplay() {
-  document.getElementById('balance-display').textContent = `余额: ${getCurrentBalance()}`;
+  const balance = getCurrentBalance();
+  const lastEntry = [...logData].reverse().find(e => e.type === 'entry');
+  if (lastEntry) {
+    const d = lastEntry.date.slice(5).replace('-', '/');
+    document.getElementById('balance-display').textContent = `余额: ${balance} (${d})`;
+  } else {
+    document.getElementById('balance-display').textContent = `余额: ${balance}`;
+  }
 }
 
 function renderHistory() {
@@ -289,7 +309,7 @@ function resetForm() {
 // === Actions ===
 async function handleSendAndSave() {
   const { date, items, memos } = getFormData();
-  const prevBalance = getCurrentBalance();
+  const prevBalance = getBalanceBefore(date);
 
   if (!date || items.length === 0) {
     alert('请填写日期和至少一个项目');
@@ -343,6 +363,9 @@ function handleCopy() {
 }
 
 function triggerShortcut(message) {
+  // Only trigger on iOS (Shortcuts app doesn't exist on desktop)
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (!isIOS) return;
   const encoded = encodeURIComponent(message);
   window.location.href = `shortcuts://run-shortcut?name=SendBalance&input=text&text=${encoded}`;
 }
@@ -385,6 +408,11 @@ async function handleSaveSettings() {
 }
 
 async function handleInit() {
+  // Must save settings first
+  if (!getConfig('token') || !getConfig('owner') || !getConfig('repo')) {
+    alert('请先点击 "保存 & 测试连接"');
+    return;
+  }
   // Only allow init once
   if (logData.some(e => e.type === 'init')) {
     alert('已初始化。如需重新设置余额，请使用 重置 Reset。');
@@ -404,6 +432,10 @@ async function handleInit() {
 }
 
 async function handleReset() {
+  if (!getConfig('token') || !getConfig('owner') || !getConfig('repo')) {
+    alert('请先点击 "保存 & 测试连接"');
+    return;
+  }
   if (!confirm('确定要清空所有记录？此操作不可撤销。')) return;
   const balance = parseFloat(document.getElementById('cfg-init-balance').value);
   if (isNaN(balance)) { alert('请输入新的起始余额'); return; }
