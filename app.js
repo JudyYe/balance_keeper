@@ -1,3 +1,6 @@
+// === Version ===
+const VERSION = 'v0.1.1';
+
 // === Constants ===
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const PRESETS = [
@@ -356,6 +359,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btn) btn.addEventListener('click', () => addItemRow(p));
   });
   document.getElementById('preset-custom').addEventListener('click', () => addItemRow());
+
+  // Version display
+  document.getElementById('version-footer').textContent = VERSION;
 
   await loadData();
 });
