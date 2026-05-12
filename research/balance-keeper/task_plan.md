@@ -152,6 +152,18 @@ balance_keeper/
 
 ### BUG-6: Display state (resolved by BUG-2 fix)
 
+### BUG-7: After init, UI does not reflect new balance (FIXED v0.2.1)
+- **Root cause**: `initLog` mutated `logData` BEFORE the API call. If API failed, `logData` was corrupted but UI update functions never ran (error not caught in pre-v0.2.0 code).
+- **Fix**: `initLog`/`saveEntry` now only update `logData`/`logSha` AFTER successful API call. All async handlers have try/catch with descriptive alerts.
+
+### BUG-8: "Failed to fetch" on save (IMPROVED v0.2.1)
+- **Root cause**: Browser `fetch()` network error. Phone network may block `api.github.com`.
+- **Fix**: Wrapped fetch calls in try/catch with Chinese error messages. Added connection test on settings save. User can now see exactly what fails.
+- **Next step**: User to test locally on desktop (http://localhost:8080) to verify API works, then debug phone network separately.
+
+### BUG-9: Local dev server (FIXED v0.2.1)
+- **Fix**: Python HTTP server running on tmux pane 1, port 8080. Test at `http://localhost:8080`.
+
 ## Notes
 - Message format: `雨菲记账：{M}/{D} {weekday}{items}。{balance_expr}`
 - Chinese weekdays: 周一 周二 周三 周四 周五 周六 周日

@@ -1,5 +1,5 @@
 // === Version ===
-const VERSION = 'v0.2.0';
+const VERSION = 'v0.2.1';
 
 // === Constants ===
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -18,32 +18,44 @@ function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
 function base64ToUtf8(b64) { return decodeURIComponent(escape(atob(b64.replace(/\n/g, '')))); }
 
 async function githubGet(path) {
-  const res = await fetch(
-    `https://api.github.com/repos/${getConfig('owner')}/${getConfig('repo')}/contents/${path}`,
-    { headers: { Authorization: `Bearer ${getConfig('token')}` } }
-  );
+  const owner = getConfig('owner');
+  const repo = getConfig('repo');
+  const token = getConfig('token');
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  let res;
+  try {
+    res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  } catch (e) {
+    throw new Error(`网络错误: 无法连接 api.github.com (${e.message})`);
+  }
   if (res.status === 404) return null;
   const data = await res.json();
-  if (data.message) throw new Error(data.message);
+  if (!res.ok) throw new Error(`GitHub ${res.status}: ${data.message || 'unknown error'}`);
   return data;
 }
 
 async function githubPut(path, content, sha, msg) {
+  const owner = getConfig('owner');
+  const repo = getConfig('repo');
+  const token = getConfig('token');
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const body = { message: msg, content: utf8ToBase64(content) };
   if (sha) body.sha = sha;
-  const res = await fetch(
-    `https://api.github.com/repos/${getConfig('owner')}/${getConfig('repo')}/contents/${path}`,
-    {
+  let res;
+  try {
+    res = await fetch(url, {
       method: 'PUT',
       headers: {
-        Authorization: `Bearer ${getConfig('token')}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-    }
-  );
+    });
+  } catch (e) {
+    throw new Error(`网络错误: 无法连接 api.github.com (${e.message})`);
+  }
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'GitHub API error');
+  if (!res.ok) throw new Error(`GitHub ${res.status}: ${data.message || 'unknown error'}`);
   return data;
 }
 
@@ -72,30 +84,56 @@ function getCurrentBalance() {
 }
 
 async function saveEntry(entry) {
-  // Defensive: refresh sha if missing (e.g. loadLog failed during init)
+  // Defensive: refresh sha if missing
   if (!logSha) await loadLog();
 
-  // Date-based dedup: overwrite existing entry for same date (BUG-4)
-  const existingIdx = logData.findIndex(e => e.type === 'entry' && e.date === entry.date);
+  // Date-based dedup: overwrite existing entry for same date
+  const newLogData = [...logData];
+  const existingIdx = newLogData.findIndex(e => e.type === 'entry' && e.date === entry.date);
   if (existingIdx >= 0) {
-    logData[existingIdx] = entry;
+    newLogData[existingIdx] = entry;
   } else {
-    logData.push(entry);
+    newLogData.push(entry);
   }
-  const content = JSON.stringify(logData, null, 2);
+  const content = JSON.stringify(newLogData, null, 2);
   const result = await githubPut('data/log.json', content, logSha, `entry: ${entry.date}`);
+  // Only update state after successful API call
+  logData = newLogData;
   logSha = result.content.sha;
 }
 
 async function initLog(startingBalance) {
-  logData = [{ type: 'init', balance: startingBalance, timestamp: new Date().toISOString() }];
-  const content = JSON.stringify(logData, null, 2);
+  const newLogData = [{ type: 'init', balance: startingBalance, timestamp: new Date().toISOString() }];
+  const content = JSON.stringify(newLogData, null, 2);
   const result = await githubPut('data/log.json', content, logSha, `init: balance ${startingBalance}`);
+  // Only update state after successful API call
+  logData = newLogData;
   logSha = result.content.sha;
 }
 
 async function resetLog(startingBalance) {
   await initLog(startingBalance);
+}
+
+// === Connection Test ===
+async function testConnection() {
+  const owner = getConfig('owner');
+  const repo = getConfig('repo');
+  const token = getConfig('token');
+  if (!token || !owner || !repo) return '请先填写 Token、Owner、Repo';
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.status === 401) return 'Token 无效或已过期';
+    if (res.status === 403) return 'Token 权限不足';
+    if (res.status === 404) return `仓库 ${owner}/${repo} 不存在或无权限`;
+    if (res.ok) return 'OK';
+    return `GitHub ${res.status}`;
+  } catch (e) {
+    return `网络错误: ${e.message}`;
+  }
 }
 
 // === Message Formatter ===
@@ -128,11 +166,17 @@ function formatMessage(date, items, memos, prevBalance) {
 }
 
 // === UI: Item & Memo Rows ===
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 function createItemRow(preset) {
   const row = document.createElement('div');
   row.className = 'item-row';
   row.innerHTML = `
-    <input type="text" class="item-label" placeholder="项目名称" value="${preset ? preset.label : ''}">
+    <input type="text" class="item-label" placeholder="项目名称" value="${preset ? escapeHtml(preset.label) : ''}">
     <input type="number" class="item-amount" placeholder="金额" value="${preset && preset.amount ? preset.amount : ''}">
     <select class="item-type">
       <option value="debit">支出</option>
@@ -141,8 +185,10 @@ function createItemRow(preset) {
     <button class="remove-btn" onclick="this.parentElement.remove(); updatePreview();">&times;</button>
   `;
   if (preset && preset.type === 'credit') row.querySelector('.item-type').value = 'credit';
-  row.querySelectorAll('input, select').forEach(el => el.addEventListener('input', updatePreview));
-  row.querySelector('.item-type').addEventListener('change', updatePreview);
+  row.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', updatePreview);
+    el.addEventListener('change', updatePreview);
+  });
   return row;
 }
 
@@ -150,10 +196,12 @@ function createMemoRow(text) {
   const row = document.createElement('div');
   row.className = 'memo-row';
   row.innerHTML = `
-    <input type="text" class="memo-input" placeholder="备忘内容" value="${text || ''}">
+    <input type="text" class="memo-input" placeholder="备忘内容" value="${escapeHtml(text || '')}">
     <button class="remove-btn" onclick="this.parentElement.remove(); updatePreview();">&times;</button>
   `;
-  row.querySelector('input').addEventListener('input', updatePreview);
+  const input = row.querySelector('input');
+  input.addEventListener('input', updatePreview);
+  input.addEventListener('change', updatePreview);
   return row;
 }
 
@@ -217,7 +265,7 @@ function renderHistory() {
     return;
   }
   list.innerHTML = entries.map(e =>
-    `<div class="history-entry">${e.message.replace(/\n/g, '<br>')}</div>`
+    `<div class="history-entry">${escapeHtml(e.message).replace(/\n/g, '<br>')}</div>`
   ).join('');
 }
 
@@ -310,8 +358,26 @@ function saveSettingsUI() {
   setConfig('phone', document.getElementById('cfg-phone').value.trim());
 }
 
+async function handleSaveSettings() {
+  saveSettingsUI();
+  // Test connection before closing settings
+  const status = document.getElementById('cfg-status');
+  status.textContent = '测试连接...';
+  status.className = '';
+  const result = await testConnection();
+  if (result === 'OK') {
+    status.textContent = '连接成功';
+    status.className = 'status-ok';
+    toggleSettings();
+    await loadData();
+  } else {
+    status.textContent = result;
+    status.className = 'status-err';
+  }
+}
+
 async function handleInit() {
-  // BUG-5: only allow init once
+  // Only allow init once
   if (logData.some(e => e.type === 'init')) {
     alert('已初始化。如需重新设置余额，请使用 重置 Reset。');
     return;
@@ -323,7 +389,7 @@ async function handleInit() {
     updateBalanceDisplay();
     renderHistory();
     updatePreview();
-    alert('初始化完成');
+    alert(`初始化完成，余额: ${balance}`);
   } catch (err) {
     alert('初始化失败: ' + err.message);
   }
@@ -338,7 +404,7 @@ async function handleReset() {
     updateBalanceDisplay();
     renderHistory();
     updatePreview();
-    alert('已重置');
+    alert(`已重置，余额: ${balance}`);
   } catch (err) {
     alert('重置失败: ' + err.message);
   }
@@ -358,7 +424,7 @@ async function loadData() {
     renderHistory();
     updatePreview();
   } catch (err) {
-    document.getElementById('balance-display').textContent = `余额: -- (加载失败: ${err.message})`;
+    document.getElementById('balance-display').textContent = `余额: -- (${err.message})`;
   }
 }
 
@@ -375,11 +441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Buttons
   document.getElementById('settings-btn').addEventListener('click', toggleSettings);
-  document.getElementById('cfg-save').addEventListener('click', () => {
-    saveSettingsUI();
-    toggleSettings();
-    loadData();
-  });
+  document.getElementById('cfg-save').addEventListener('click', handleSaveSettings);
   document.getElementById('add-memo').addEventListener('click', () => addMemoRow());
   document.getElementById('btn-send').addEventListener('click', handleSendAndSave);
   document.getElementById('btn-copy').addEventListener('click', handleCopy);
