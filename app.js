@@ -344,7 +344,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     toggleSettings();
     loadData();
   });
-  document.getElementById('add-item').addEventListener('click', () => addItemRow());
   document.getElementById('add-memo').addEventListener('click', () => addMemoRow());
   document.getElementById('btn-send').addEventListener('click', handleSendAndSave);
   document.getElementById('btn-copy').addEventListener('click', handleCopy);

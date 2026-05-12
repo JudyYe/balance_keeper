@@ -130,6 +130,12 @@ balance_keeper/
 ]
 ```
 
+## Bugs
+
+### BUG-1: All buttons non-functional (FIXED)
+- **Root cause**: `app.js:347` calls `getElementById('add-item')` but no such element in HTML. Throws null error, kills entire DOMContentLoaded handler — all event listeners after that line never attach.
+- **Fix**: Removed dead `add-item` listener. Preset buttons already handle item addition.
+
 ## Notes
 - Message format: `雨菲记账：{M}/{D} {weekday}{items}。{balance_expr}`
 - Chinese weekdays: 周一 周二 周三 周四 周五 周六 周日
