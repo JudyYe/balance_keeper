@@ -14,7 +14,7 @@ Phone browser → GitHub Pages (static HTML/JS)
 ```
 
 ## Current Phase
-Phase 1 (Discussion — finalizing plan)
+Phase 7 (Deploy & Test)
 
 ## Phases
 
@@ -26,47 +26,46 @@ Phase 1 (Discussion — finalizing plan)
 - **Status:** complete
 
 ### Phase 2: Core Logic (JavaScript)
-- [ ] Message formatter: Chinese text with balance calculation
-- [ ] Balance calculator: chain from previous entry
-- [ ] Item types: lesson (debit), stringing (debit), topup (credit), custom label
-- [ ] Chinese weekday mapping
-- **Status:** pending
+- [x] Message formatter: Chinese text with balance calculation
+- [x] Balance calculator: chain from previous entry
+- [x] Item types: lesson (debit), stringing (debit), topup (credit), custom label
+- [x] Chinese weekday mapping
+- **Status:** complete
 
 ### Phase 3: Data Layer (GitHub API)
-- [ ] Read entries from repo JSON file via GitHub API
-- [ ] Write new entry: commit to repo via GitHub API
-- [ ] GitHub token handling (stored in localStorage, entered once)
-- [ ] Compute current balance from log on load
-- [ ] **Init/Reset**: initialize `data/log.json` (empty array + optional starting balance)
-- [ ] **Reset**: clear log and set a new starting balance (with confirmation prompt)
-- **Status:** pending
+- [x] Read entries from repo JSON file via GitHub API
+- [x] Write new entry: commit to repo via GitHub API
+- [x] GitHub token handling (stored in localStorage, entered once)
+- [x] Compute current balance from log on load
+- [x] **Init/Reset**: initialize `data/log.json` (empty array + optional starting balance)
+- [x] **Reset**: clear log and set a new starting balance (with confirmation prompt)
+- **Status:** complete
 
 ### Phase 4: Web UI (vanilla HTML/JS)
-- [ ] Form: date picker (default today), dynamic item rows (add/remove)
-- [ ] Each item row: label (dropdown + custom), amount, credit/debit toggle
-- [ ] Memo: dynamic text rows (add/remove), free-form
-- [ ] Auto-fill: today's date, Chinese weekday
-- [ ] Preview panel: formatted Chinese message text
-- [ ] Edit flow: modify form fields → preview updates live
-- [ ] Current balance display
-- [ ] History view (past entries)
-- [ ] Settings panel: token, repo, phone number, init/reset controls
-- **Status:** pending
+- [x] Form: date picker (default today), dynamic item rows (add/remove)
+- [x] Each item row: label (dropdown + custom), amount, credit/debit toggle
+- [x] Memo: dynamic text rows (add/remove), free-form
+- [x] Auto-fill: today's date, Chinese weekday
+- [x] Preview panel: formatted Chinese message text
+- [x] Edit flow: modify form fields → preview updates live
+- [x] Current balance display
+- [x] History view (past entries)
+- [x] Settings panel: token, repo, phone number, init/reset controls
+- **Status:** complete
 
 ### Phase 5: iMessage Integration (iOS Shortcut)
-- [ ] Create iOS Shortcut: receive text input → send iMessage to coach number
-- [ ] "Send" button on web UI: triggers `shortcuts://run-shortcut?name=...&input=text&text=...`
-- [ ] Fallback: copy-to-clipboard button if not on iPhone
-- [ ] Test phone number: 4124031931
-- **Status:** pending
+- [x] "Send" button on web UI: triggers `shortcuts://run-shortcut?name=SendBalance&input=text&text=...`
+- [x] Fallback: copy-to-clipboard button if not on iPhone
+- [ ] Test phone number: 4124031931 (needs live test on phone)
+- **Status:** complete (code done, needs phone test)
 
 ### Phase 6: Documentation
-- [ ] README.md: user-facing workflow guide (setup, daily usage, iOS Shortcut setup)
-- [ ] docs/engineer.md: implementation details, architecture, data model, API usage
-- **Status:** pending
+- [x] README.md: user-facing workflow guide (setup, daily usage, iOS Shortcut setup)
+- [x] docs/engineer.md: implementation details, architecture, data model, API usage
+- **Status:** complete
 
 ### Phase 7: Deploy & Test
-- [ ] Enable GitHub Pages on this repo
+- [ ] Push to GitHub and verify Pages is serving
 - [ ] Test full flow: form → preview → save to repo → send via Shortcut
 - [ ] Test with real message formats from sketch.md
 - [ ] Test send to 4124031931

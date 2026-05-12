@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>记账 Balance Keeper</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="apple-touch-icon" href="data:,">
+</head>
+<body>
+  <header>
+    <h1>记账</h1>
+    <div id="balance-display">余额: --</div>
+    <button id="settings-btn" title="设置">&#9881;</button>
+  </header>
+
+  <!-- Settings -->
+  <section id="settings-panel" class="hidden">
+    <h2>设置 Settings</h2>
+    <label>GitHub Token
+      <input id="cfg-token" type="password" placeholder="ghp_xxxx">
+    </label>
+    <label>Repo Owner
+      <input id="cfg-owner" placeholder="JudyYe">
+    </label>
+    <label>Repo Name
+      <input id="cfg-repo" placeholder="balance_keeper">
+    </label>
+    <label>Coach Phone
+      <input id="cfg-phone" type="tel" placeholder="4124031931">
+    </label>
+    <button id="cfg-save" class="primary">保存 Save</button>
+    <hr>
+    <h3>数据库 Database</h3>
+    <label>起始余额 Starting Balance
+      <input id="cfg-init-balance" type="number" placeholder="0">
+    </label>
+    <div class="btn-group">
+      <button id="cfg-init">初始化 Init</button>
+      <button id="cfg-reset" class="danger">重置 Reset</button>
+    </div>
+  </section>
+
+  <!-- Entry Form -->
+  <section id="form-section">
+    <div class="date-row">
+      <input id="entry-date" type="date">
+      <span id="entry-weekday"></span>
+    </div>
+
+    <h3>项目 Items</h3>
+    <div class="presets">
+      <button id="preset-lesson">+ 上课</button>
+      <button id="preset-string">+ 穿拍</button>
+      <button id="preset-topup">+ 充值</button>
+      <button id="preset-custom">+ 自定义</button>
+    </div>
+    <div id="items-container"></div>
+
+    <h3>备忘 Memo</h3>
+    <div id="memos-container"></div>
+    <button id="add-memo" class="add-btn">+ 添加备忘</button>
+  </section>
+
+  <!-- Preview -->
+  <section id="preview-section">
+    <h3>预览 Preview</h3>
+    <pre id="preview-text">(填写项目后预览)</pre>
+  </section>
+
+  <!-- Actions -->
+  <div id="actions">
+    <button id="btn-send" class="primary">发送 & 保存</button>
+    <button id="btn-copy">复制 Copy</button>
+  </div>
+
+  <!-- History -->
+  <section id="history-section">
+    <h3>历史记录 History</h3>
+    <div id="history-list">
+      <p class="muted">暂无记录</p>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
