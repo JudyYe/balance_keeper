@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "type": "entry",
+    "id": "2026-05-12",
+    "date": "2026-05-12",
+    "weekday": "周二",
+    "items": [
+      {
+        "label": "雨菲上课",
+        "amount": -180
+      },
+      {
+        "label": "充值",
+        "amount": 900
+      }
+    ],
+    "memos": [
+      "今日内容 hahahah"
+    ],
+    "prev_balance": 0,
+    "new_balance": 720,
+    "message": "雨菲记账：5/12 周二雨菲上课 180，充值 900。0-180+900=720\n备忘：\n1 今日内容 hahahah",
+    "timestamp": "2026-05-12T07:32:47.689Z"
+  }
+]
