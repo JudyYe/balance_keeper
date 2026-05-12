@@ -132,9 +132,25 @@ balance_keeper/
 
 ## Bugs
 
-### BUG-1: All buttons non-functional (FIXED)
-- **Root cause**: `app.js:347` calls `getElementById('add-item')` but no such element in HTML. Throws null error, kills entire DOMContentLoaded handler — all event listeners after that line never attach.
-- **Fix**: Removed dead `add-item` listener. Preset buttons already handle item addition.
+### BUG-1: All buttons non-functional (FIXED v0.1.1)
+- **Root cause**: `getElementById('add-item')` on non-existent element kills DOMContentLoaded.
+- **Fix**: Removed dead listener.
+
+### BUG-2: Save hangs at "保存中..." (FIXED v0.2.0)
+- **Root cause**: No try/catch in async handlers + `loadLog` fails silently → `logSha` null → GitHub 422.
+- **Fix**: try/catch on all async handlers. Defensive sha refresh in `saveEntry`. Error display in `loadData`.
+
+### BUG-3: 充值 may not show in preview (EXPECTED BEHAVIOR)
+- Preset has empty amount; items with amount=0 are excluded from preview. Once user types an amount, it appears.
+- Not a bug — 充值 amount varies each time so no default makes sense.
+
+### BUG-4: Duplicate entries on same date (FIXED v0.2.0)
+- **Fix**: `saveEntry` finds existing entry by date and replaces instead of appending.
+
+### BUG-5: Init should only work once (FIXED v0.2.0)
+- **Fix**: `handleInit` refuses if log already has an init entry. Use Reset to start over.
+
+### BUG-6: Display state (resolved by BUG-2 fix)
 
 ## Notes
 - Message format: `雨菲记账：{M}/{D} {weekday}{items}。{balance_expr}`

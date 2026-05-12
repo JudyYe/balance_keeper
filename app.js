@@ -1,5 +1,5 @@
 // === Version ===
-const VERSION = 'v0.1.1';
+const VERSION = 'v0.2.0';
 
 // === Constants ===
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -72,7 +72,16 @@ function getCurrentBalance() {
 }
 
 async function saveEntry(entry) {
-  logData.push(entry);
+  // Defensive: refresh sha if missing (e.g. loadLog failed during init)
+  if (!logSha) await loadLog();
+
+  // Date-based dedup: overwrite existing entry for same date (BUG-4)
+  const existingIdx = logData.findIndex(e => e.type === 'entry' && e.date === entry.date);
+  if (existingIdx >= 0) {
+    logData[existingIdx] = entry;
+  } else {
+    logData.push(entry);
+  }
   const content = JSON.stringify(logData, null, 2);
   const result = await githubPut('data/log.json', content, logSha, `entry: ${entry.date}`);
   logSha = result.content.sha;
@@ -234,7 +243,7 @@ async function handleSendAndSave() {
   const { message, newBalance } = formatMessage(date, items, memos, prevBalance);
   const entry = {
     type: 'entry',
-    id: `${date}-${String(logData.length).padStart(3, '0')}`,
+    id: `${date}`,
     date,
     weekday: WEEKDAYS[new Date(date + 'T00:00:00').getDay()],
     items,
@@ -249,18 +258,23 @@ async function handleSendAndSave() {
   btn.disabled = true;
   btn.textContent = '保存中...';
 
-  await saveEntry(entry);
-  updateBalanceDisplay();
-  renderHistory();
-  resetForm();
+  try {
+    await saveEntry(entry);
+    updateBalanceDisplay();
+    renderHistory();
+    resetForm();
 
-  btn.textContent = '已保存';
-  // Trigger iMessage after a brief pause so UI updates are visible
-  setTimeout(() => {
-    triggerShortcut(message);
+    btn.textContent = '已保存';
+    setTimeout(() => {
+      triggerShortcut(message);
+      btn.textContent = '发送 & 保存';
+      btn.disabled = false;
+    }, 300);
+  } catch (err) {
+    alert('保存失败: ' + err.message);
     btn.textContent = '发送 & 保存';
     btn.disabled = false;
-  }, 300);
+  }
 }
 
 function handleCopy() {
@@ -297,22 +311,37 @@ function saveSettingsUI() {
 }
 
 async function handleInit() {
+  // BUG-5: only allow init once
+  if (logData.some(e => e.type === 'init')) {
+    alert('已初始化。如需重新设置余额，请使用 重置 Reset。');
+    return;
+  }
   const balance = parseFloat(document.getElementById('cfg-init-balance').value);
   if (isNaN(balance)) { alert('请输入起始余额'); return; }
-  await initLog(balance);
-  updateBalanceDisplay();
-  renderHistory();
-  alert('初始化完成');
+  try {
+    await initLog(balance);
+    updateBalanceDisplay();
+    renderHistory();
+    updatePreview();
+    alert('初始化完成');
+  } catch (err) {
+    alert('初始化失败: ' + err.message);
+  }
 }
 
 async function handleReset() {
   if (!confirm('确定要清空所有记录？此操作不可撤销。')) return;
   const balance = parseFloat(document.getElementById('cfg-init-balance').value);
   if (isNaN(balance)) { alert('请输入新的起始余额'); return; }
-  await resetLog(balance);
-  updateBalanceDisplay();
-  renderHistory();
-  alert('已重置');
+  try {
+    await resetLog(balance);
+    updateBalanceDisplay();
+    renderHistory();
+    updatePreview();
+    alert('已重置');
+  } catch (err) {
+    alert('重置失败: ' + err.message);
+  }
 }
 
 // === Init ===
@@ -323,10 +352,14 @@ async function loadData() {
     document.getElementById('balance-display').textContent = '余额: -- (请先设置)';
     return;
   }
-  await loadLog();
-  updateBalanceDisplay();
-  renderHistory();
-  updatePreview();
+  try {
+    await loadLog();
+    updateBalanceDisplay();
+    renderHistory();
+    updatePreview();
+  } catch (err) {
+    document.getElementById('balance-display').textContent = `余额: -- (加载失败: ${err.message})`;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
