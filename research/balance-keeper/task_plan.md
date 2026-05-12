@@ -37,6 +37,8 @@ Phase 1 (Discussion — finalizing plan)
 - [ ] Write new entry: commit to repo via GitHub API
 - [ ] GitHub token handling (stored in localStorage, entered once)
 - [ ] Compute current balance from log on load
+- [ ] **Init/Reset**: initialize `data/log.json` (empty array + optional starting balance)
+- [ ] **Reset**: clear log and set a new starting balance (with confirmation prompt)
 - **Status:** pending
 
 ### Phase 4: Web UI (vanilla HTML/JS)
@@ -48,18 +50,26 @@ Phase 1 (Discussion — finalizing plan)
 - [ ] Edit flow: modify form fields → preview updates live
 - [ ] Current balance display
 - [ ] History view (past entries)
+- [ ] Settings panel: token, repo, phone number, init/reset controls
 - **Status:** pending
 
 ### Phase 5: iMessage Integration (iOS Shortcut)
 - [ ] Create iOS Shortcut: receive text input → send iMessage to coach number
 - [ ] "Send" button on web UI: triggers `shortcuts://run-shortcut?name=...&input=text&text=...`
 - [ ] Fallback: copy-to-clipboard button if not on iPhone
+- [ ] Test phone number: 4124031931
 - **Status:** pending
 
-### Phase 6: Deploy & Test
+### Phase 6: Documentation
+- [ ] README.md: user-facing workflow guide (setup, daily usage, iOS Shortcut setup)
+- [ ] docs/engineer.md: implementation details, architecture, data model, API usage
+- **Status:** pending
+
+### Phase 7: Deploy & Test
 - [ ] Enable GitHub Pages on this repo
 - [ ] Test full flow: form → preview → save to repo → send via Shortcut
 - [ ] Test with real message formats from sketch.md
+- [ ] Test send to 4124031931
 - [ ] Edge cases: multiple items, credits + debits mixed
 - [ ] Mobile UI check (phone is primary device for this)
 - **Status:** pending
@@ -86,6 +96,8 @@ Phase 1 (Discussion — finalizing plan)
 | Vanilla JS, no framework | Minimal complexity for a single-page form app |
 | iOS Shortcut for iMessage | Only way to auto-send; triggered via shortcuts:// URL scheme |
 | No reply-threading | Not possible via any Apple API |
+| Test phone: 4124031931 | User-provided test number |
+| README = user guide, docs/engineer.md = implementation | Clean separation of audience |
 
 ## File Structure (planned)
 ```
@@ -94,7 +106,9 @@ balance_keeper/
   style.css           — styling (mobile-first)
   app.js              — form logic, preview, GitHub API, Shortcut trigger
   data/log.json       — append-only entry log (committed via API)
-  research/           — planning files (this directory)
+  README.md           — user-facing workflow guide
+  docs/engineer.md    — implementation details
+  research/           — planning files
 ```
 
 ## Data Model (planned)
@@ -123,3 +137,4 @@ balance_keeper/
 - Items in message: comma-separated, debits shown as positive numbers, credits as 充值{amount}
 - Balance expression: `{prev}{-item1}{-item2}{+topup}={new}`
 - shortcuts:// URL has a length limit — long messages may need clipboard fallback
+- Init/Reset: settings panel allows initializing log with a starting balance or clearing all data
